@@ -183,7 +183,6 @@ if _plot_each_iso_contribution == 'Y':
                                                                    sigma_iso_ele_l_eleisodict[_ele][_iso])
         y_iso_dicts[_ele] = y_iso_dict
         y_iso_dict = {}  # Clear for following set of isotopes
-    # print(y_iso_dicts)
 
 
 # ### Export to clipboard for density and thickness manipulations with Excel or DataGraph
