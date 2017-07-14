@@ -6,18 +6,17 @@ import matplotlib.pyplot as plt
 from matplotlib import style
 import glob
 import os
-from scipy import interpolate
+from scipy.interpolate import *
 style.use('ggplot')
 
 
 def get_pre_data(_database, _element):
-    main_dir = os.path.dirname(os.path.abspath(__file__))
-    path = main_dir + '/data_web/' + _database + '/' + _element + '*.csv'
+    # main_dir = os.path.dirname(os.path.abspath(__file__))
+    # path = main_dir + '/data_web/' + _database + '/' + _element + '*.csv'
+    path = 'data_web/' + _database + '/' + _element + '*.csv'
     file_names = glob.glob(path)
     abundance_dict = {}
-    density_dict = {}
     mass_dict = {}
-    # z_number = {}
     for _i, file in enumerate(file_names):
         # Obtain element, z number from the basename
         _basename = os.path.basename(file)
@@ -26,13 +25,12 @@ def get_pre_data(_database, _element):
         _name = _name_number.split('-')
         _symbol = _name[1] + '-' + _name[0]
         abundance_dict[str(_symbol)] = pt.elements.isotope(_symbol).abundance / 100
-        density_dict[str(_symbol)] = pt.elements.isotope(_symbol).density
         mass_dict[str(_symbol)] = pt.elements.isotope(_symbol).mass
     isotopes = list(dict.keys(abundance_dict))  # List of isotopes such as '238-U', ''235-U
     iso_abundance = list(dict.values(abundance_dict))  # List of isotopic abundance
-    iso_density = list(dict.values(density_dict))  # List of isotopic density
+    # iso_density = list(dict.values(density_dict))  # List of isotopic density
     iso_mass = list(dict.values(mass_dict))  # List of isotopic molar mass
-    return isotopes, abundance_dict, iso_abundance, iso_density, iso_mass, abundance_dict, density_dict, mass_dict, file_names
+    return isotopes, abundance_dict, iso_abundance, iso_mass, file_names
 
 
 def get_mass_iso_ele(iso_abundance, iso_mass, ele_at_ratio, _natural_mix, _unnatural_ratio_dict):
@@ -50,14 +48,16 @@ def get_mass_iso_ele(iso_abundance, iso_mass, ele_at_ratio, _natural_mix, _unnat
     return mass_iso_ele
 
 
-def get_xy(isotopes, file_names, energy_min, energy_max, iso_abundance, sub_x, ele_at_ratio, _natural_mix, _unnatural_ratio_dict):
+def get_xy(isotopes, thick_cm, file_names, energy_min, energy_max, iso_abundance, sub_x, ele_at_ratio, _natural_mix, _unnatural_ratio_dict):
     # Transmission calculation of summed and separated contributions by each isotopes
     df = pd.DataFrame()
     df_raw = pd.DataFrame()
-    y_i_iso_ele_dict = {}
+    sigma_iso_ele_isodict = {}
+    sigma_iso_ele_l_isodict = {}
+    # sigma_iso_ele_l_isodict = {}
     # thick_cm = thick_mm/10
-    y_i_iso_ele_sum = 0.
-
+    sigma_iso_ele_sum = 0.
+    # sigma_iso_ele_l_sum = 0.
     if _natural_mix == 'Y':
         iso_at_ratio = iso_abundance
     else:
@@ -83,9 +83,13 @@ def get_xy(isotopes, file_names, energy_min, energy_max, iso_abundance, sub_x, e
         x_energy = np.linspace(df['E_eV'].min(), df['E_eV'].max(), sub_x)
         spline = interpolate.interp1d(x=df['E_eV'], y=df['Sig_b'], kind='linear')
         y_i = spline(x_energy)
+        sigma_b = y_i
         # y_i_sum = y_i_sum + y_i * iso_abundance[i] * ele_at_ratio
-        y_i_iso_ele_dict[_isotope] = y_i * iso_at_ratio[i] * ele_at_ratio
-        y_i_iso_ele_sum = y_i_iso_ele_sum + y_i * iso_at_ratio[i] * ele_at_ratio
+        sigma_iso_ele_isodict[_isotope] = sigma_b * iso_at_ratio[i] * ele_at_ratio
+        sigma_iso_ele_l_isodict[_isotope] = sigma_iso_ele_isodict[_isotope] * thick_cm
+        sigma_iso_ele_sum = sigma_iso_ele_sum + sigma_b * iso_at_ratio[i] * ele_at_ratio
+        # sigma_iso_ele_l_isodict[_isotope] = sigma_b * iso_at_ratio[i] * ele_at_ratio * thick_cm
+        # sigma_iso_ele_l_sum = sigma_iso_ele_l_sum + sigma_b * iso_at_ratio[i] * ele_at_ratio * thick_cm
 
         """
         Attention:
@@ -98,14 +102,14 @@ def get_xy(isotopes, file_names, energy_min, energy_max, iso_abundance, sub_x, e
         df.rename(columns={'E_eV': first_col, 'Sig_b': second_col}, inplace=True)
         df_raw = pd.concat([df_raw, df], axis=1)
 
-    return x_energy, y_i_iso_ele_dict, y_i_iso_ele_sum, df_raw
+    return x_energy, sigma_iso_ele_isodict, sigma_iso_ele_l_isodict, sigma_iso_ele_sum, df_raw
 
 
-def set_xy(_all, thick_mm, mixed_atoms_per_cm3, sig_dict, _x_axis):
-    for _i in _all:
-        _y_axis_i = _functions.sig2trans_quick(thick_mm, mixed_atoms_per_cm3, sig_dict[_i])
-        plt.plot(_x_axis, _y_axis_i, label=_i)
-    return
+# def set_xy(_all, thick_mm, mixed_atoms_per_cm3, sig_dict, _x_axis):
+#     for _i in _all:
+#         _y_axis_i = _functions.sig2trans_quick(thick_mm, mixed_atoms_per_cm3, sig_dict[_i])
+#         plt.plot(_x_axis, _y_axis_i, label=_i)
+#     return
 
 
 def plot_xy(_all, _energy_x_axis, _trans_y_axis, _plot_each_contribution, _plot_mixed,
