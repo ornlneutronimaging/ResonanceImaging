@@ -1,14 +1,23 @@
 from __future__ import print_function
 
-tutorial_name = 'Jupyter widget ecosystem'
+resonance_imaging = 'Resonance Imaging'
 
 requirements = [
     'ipywidgets',
+    'periodictable',
+    'numpy',
+    'glob',
+    'pyfits',
+    'PIL',
+    'pickle',
+    'shutil',
+    'pyqtgraph',
+    'scipy',
 ]
 
 import_result = {p: False for p in requirements}
 
-print("Checking requirements for {}".format(tutorial_name))
+print("Checking requirements for {}".format(resonance_imaging))
 
 for package in requirements:
     try:
@@ -23,7 +32,7 @@ if success:
     print('All required packages installed, checking ipywidgets version...')
 else:
     print('Please install these missing packages '
-          'for the tutorial "{}":'.format(tutorial_name))
+          'for the tutorial "{}":'.format(resonance_imaging))
     missing = [k for k, v in import_result.items() if not v]
     print('\t' + '\n\t'.join(missing))
 

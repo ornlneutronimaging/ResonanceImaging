@@ -11,12 +11,14 @@ import os
 class Loading(object):
     
     data = []
+    list_sample_images = []
     
-    def __init__(self, working_dir=''):
+    def __init__(self, working_dir='', message='Select the Sample Folder!'):
         self.working_dir = working_dir
+        self.message = message
         
     def run(self):
-        display(HTML('<span style="font-size: 20px; color:blue">Select the Sample Folder!</span>'))
+        display(HTML('<span style="font-size: 20px; color:blue">' + self.message + '</span>'))
         sample_image = gui_widgets.gui_dname(dir=self.working_dir)
         list_sample_images = np.sort(glob.glob(os.path.join(sample_image, '*.fits')))
 
@@ -39,3 +41,4 @@ class Loading(object):
             _data = np.squeeze(_data)
 
             self.data = _data
+            self.list_sample_images = list_sample_images

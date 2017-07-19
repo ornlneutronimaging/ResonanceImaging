@@ -23,6 +23,18 @@ def load_data(file_name):
     else:
         raise NotImplementedError
     
+def save_data(data, file_name):
+    '''
+    save the data using the prefix type of the file_name
+    '''
+    data_type = get_data_type(file_name)
+    if data_type == '.fits':
+        make_fits(data=data, filename=file_name)
+    elif (data_type == '.tiff') or (data_type == '.tif'):
+        make_tiff(data=data, filename=file_name)
+    else:
+        raise NotImplementedError    
+    
 def get_data_type(file_name):
     '''
     using the file name extension, will return the type of the data

@@ -18,8 +18,13 @@ class ImageWindow(QMainWindow):
     
     grid_size = 100
     live_data = []
+    rotated_sample = []
+    rotated_ob = []
+
+    working_sample = []
+    working_ob = []
     
-    def __init__(self, parent=None, working_data=[]):
+    def __init__(self, parent=None, working_sample=[], working_ob=[]):
         QMainWindow.__init__(self, parent=parent)
         self.ui = UiMainWindow()
         self.ui.setupUi(self)
@@ -32,7 +37,7 @@ class ImageWindow(QMainWindow):
         
         bottom_layout = QtGui.QHBoxLayout()
 
-        nbr_images = len(working_data)
+        nbr_images = len(working_sample)
         
         # file index slider
         label_1 = QtGui.QLabel("File Index")
@@ -65,8 +70,11 @@ class ImageWindow(QMainWindow):
 
         self.ui.widget.setLayout(vertical_layout)
         
-        self.rotated_working_data = working_data
-        self.working_data = working_data
+        self.rotated_sample = working_sample
+        self.working_sample = working_sample
+        
+        self.rotated_ob = working_ob        
+        self.working_ob = working_ob
         
         self.init_imageview()
         self.display_grid()
@@ -80,7 +88,7 @@ class ImageWindow(QMainWindow):
         self.ui.statusbar.addPermanentWidget(self.eventProgress)
         
     def display_crop_region(self):
-        [image_height, image_width] = self.get_image_dimension(self.rotated_working_data)
+        [image_height, image_width] = self.get_image_dimension(self.rotated_sample)
         x0, y0 = 0, 0
         width = image_width-1
         height = image_height-1
@@ -98,13 +106,13 @@ class ImageWindow(QMainWindow):
         
     def get_selected_image(self, file_index):
 
-        if len(np.shape(self.working_data)) > 2:
-            return self.working_data[file_index]
+        if len(np.shape(self.working_sample)) > 2:
+            return self.working_sample[file_index]
         else:
-            return self.working_data
+            return self.working_sample
         
     def display_grid(self):
-        [width, height] = self.get_image_dimension(self.rotated_working_data)
+        [width, height] = self.get_image_dimension(self.rotated_sample)
         bin_size = self.grid_size
         x0 = 0
         y0 = 0
@@ -179,7 +187,6 @@ class ImageWindow(QMainWindow):
         self.ui.image_view.setImage(rotated_data)
     
     def rotate_and_crop_all(self):
-        global rotated_working_data            
 
         #FIXME
         #inform user that the window will close by itself and it's still doing something
@@ -193,20 +200,26 @@ class ImageWindow(QMainWindow):
         y1 = region[0][1].stop-1
         
         self.eventProgress.setValue(0)
-        self.eventProgress.setMaximum(len(self.working_data))
+        self.eventProgress.setMaximum(len(self.working_sample))
         self.eventProgress.setVisible(True)
         
         _rotation_value = np.float(str(self.ui.rotation_value.text()))
-        self.rotated_working_data = []
+        self.rotated_sample = []
         
-        if len(np.shape(self.working_data)) == 2:
-            self.working_data = [self.working_data]
+        if len(np.shape(self.working_sample)) == 2:
+            self.working_sample = [self.working_sample]
         
-        for _index, _data in enumerate(self.working_data):
-            # rotate image
+        for _index, _data in enumerate(self.working_sample):
+            # sample
             rotated_data = scipy.ndimage.interpolation.rotate(_data, _rotation_value)
             rotated_data = rotated_data[y0:y1+1, x0:x1+1]
-            self.rotated_working_data.append(rotated_data)
+            self.rotated_sample.append(rotated_data)
+            # ob
+            _ob = self.working_ob[_index]
+            rotated_ob = scipy.ndimage.interpolation.rotate(_ob, _rotation_value)
+            rotated_ob = rotated_ob[y0:y1+1, x0:x1+1]
+            self.rotated_ob.append(rotated_ob)
+
             self.eventProgress.setValue(_index+1)
             QtGui.QApplication.processEvents()
     
@@ -214,12 +227,11 @@ class ImageWindow(QMainWindow):
         self.ui.image_view.removeItem(self.line_view_binning)
         self.display_grid()
         
-        rotated_working_data = self.rotated_working_data
         self.eventProgress.setVisible(False)
     
     def apply_clicked(self):
         self.rotate_and_crop_all()
-        self.close()
+#        self.close()
         
     def cancel_clicked(self):
         self.close()
