@@ -96,5 +96,5 @@ class Ui_MainWindow(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">* Define <span style=\" font-weight:600;\">angle value</span> and hit ENTER to validate choice.</p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">* The<span style=\" font-weight:600;\"> selection box </span>within the image defines the cropping region</p></body></html>", None))
         self.cancel_button.setText(_translate("MainWindow", "Cancel", None))
-        self.apply_button.setText(_translate("MainWindow", "Apply on all Images", None))
+        self.apply_button.setText(_translate("MainWindow", "Apply ROI and Rotation", None))
 
