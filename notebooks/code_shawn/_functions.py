@@ -44,23 +44,24 @@ def sig2trans(_thick_cm, _atoms_per_cm3, _ele_atomic_ratio, _sigma_b, _iso_atomi
     return neutron_transmission
 
 
-def sig2trans_quick(_thick_cm, _atoms_per_cm3, _sigma_portion_sum):
+def sig_2trans_quick(_thick_cm, _atoms_per_cm3, _sigma_portion_sum):
     neutron_transmission = np.exp(-1 * _thick_cm * _atoms_per_cm3 * 1e-24 * _sigma_portion_sum)
     return neutron_transmission
 
 
-def sigl2trans_quick(_atoms_per_cm3, _sigma_l_portion_sum):
-    neutron_transmission = np.exp(-1 * _atoms_per_cm3 * 1e-24 * _sigma_l_portion_sum)
+def sig_l_2trans_quick(l_n_avo, sigma_portion_sum):
+    neutron_transmission = np.exp(-1 * l_n_avo * 1e-24 * sigma_portion_sum)
     return neutron_transmission
 
 
-def get_isotope_dict(_database, _element):
-    main_dir = os.path.dirname(os.path.abspath(__file__))
-    isotope_dicts = {}
+def get_isotope_dicts(_database, _element):
+    # main_dir = os.path.dirname(os.path.abspath(__file__))
+    isotope_dict = {}
     for _each in _element:
-        path = main_dir + '/data_web/' + _database + '/' + _each + '*.csv'
+        path = 'data_web/' + _database + '/' + str(_each) + '*.csv'
+        # path = main_dir + '/data_web/' + _database + '/' + _each + '*.csv'
         file_names = glob.glob(path)
-        isotope_dict = {}
+        isotope_dict_mirror = {}
         for _i, file in enumerate(file_names):
             # Obtain element, z number from the basename
             _basename = os.path.basename(file)
@@ -69,10 +70,10 @@ def get_isotope_dict(_database, _element):
             _name = _name_number.split('-')
             _symbol = _name[1] + '-' + _name[0]
             isotope = str(_symbol)
-            isotope_dict[isotope] = isotope
-        isotopes = list(dict.values(isotope_dict))
-        isotope_dicts[_each] = isotopes
-    return isotope_dicts
+            isotope_dict_mirror[isotope] = isotope
+        isotopes = list(dict.values(isotope_dict_mirror))
+        isotope_dict[_each] = isotopes
+    return isotope_dict
 
 
 def input2formula(_input):
@@ -108,15 +109,15 @@ def boo_dict(_key_list, _y_or_n):
         _boo_dict[key] = _y_or_n
     return _boo_dict
 
-
-def thick_dict(_key_list, _thick_mm):
+#########
+def get_thick_dict(_key_list, _thick_mm):
     _thick_dict = {}
     for key in _key_list:
         _thick_dict[key] = _thick_mm
     return _thick_dict
 
 
-def density_dict(_key_list):
+def get_density_dict(_key_list):
     _density_dict = {}
     for key in _key_list:
         _density_dict[key] = pt.elements.isotope(key).density
@@ -125,12 +126,94 @@ def density_dict(_key_list):
     return _density_dict
 
 
+####
+def get_molar_mass_dict(elements):
+    molar_mass_dict = {}
+    for ele in elements:
+        molar_mass_dict[ele] = pt.elements.isotope(ele).mass
+    return molar_mass_dict
+
+
+def get_iso_ratio_dict(isotopes):
+    # natural_density = pt.elements.isotope(_element).density
+    iso_ratio_dict = {}
+    for iso in isotopes:
+        iso_ratio_dict[iso] = pt.elements.isotope(iso).abundance
+    return iso_ratio_dict
+
+
+def get_iso_ratio_dicts(elements, iso_ratio_dict):
+    # natural_density = pt.elements.isotope(_element).density
+    iso_ratio_dicts = {}
+    for el in elements:
+        iso_ratio_dicts[el] = iso_ratio_dict
+    return iso_ratio_dicts
+
+
+def get_iso_ratio_dicts_quick(elements, isotope_dict):
+    # natural_density = pt.elements.isotope(_element).density
+    iso_ratio_dicts = {}
+    for el in elements:
+        iso_ratio_dict = {}
+        for iso in isotope_dict[el]:
+            iso_ratio_dict[iso] = pt.elements.isotope(iso).abundance/100
+        iso_ratio_dicts[el] = iso_ratio_dict
+    return iso_ratio_dicts
+
+
+def get_iso_mass_dicts_quick(elements, isotope_dict):
+    # natural_density = pt.elements.isotope(_element).density
+    iso_mass_dicts = {}
+    for el in elements:
+        iso_mass_dict = {}
+        for iso in isotope_dict[el]:
+            iso_mass_dict[iso] = pt.elements.isotope(iso).mass
+        iso_mass_dicts[el] = iso_mass_dict
+    return iso_mass_dicts
+
+
+def empty_2d_dict(top_level_name, top_base_dict):
+    whole_dict = {}
+    base_dict = {}
+    for top in top_level_name:
+        for base in top_base_dict[top]:
+            base_dict[base] = 1
+        whole_dict[top] = base_dict
+    return whole_dict
+
+
+def create_2d_dict(top_level_name, top_base_dict, value_dict):
+    whole_dict = {}
+    base_dict = {}
+    for top in top_level_name:
+        for base in top_base_dict[top]:
+            base_dict[base] = value_dict[top][base]
+        whole_dict[top] = base_dict
+    return whole_dict
+
+####
+#########
+
+
+def get_file_path(_database, _element):
+    path = 'data_web/' + _database + '/' + _element + '*.csv'
+    file_names = glob.glob(path)
+    return file_names
+
+
 def empty_dict(_key_list):
     _empty_dicts = {}
     _empty_dict = {}
     for key in _key_list:
         _empty_dicts[key] = _empty_dict
     return _empty_dicts
+
+
+def repeat_value_dict(_key_list, value):
+    _thick_dict = {}
+    for key in _key_list:
+        _thick_dict[key] = value
+    return _thick_dict
 
 
 def boo_dict_invert_by_key(_key_list, _boo_dict):
@@ -174,13 +257,13 @@ def get_normalized_data(_filename):
     return normalized_array
 
 
-def get_normalized_data_slice(_filename, _slice):
+def get_normalized_data_slice(_filename, _ignore):
     df = pd.read_csv(_filename, header=None, skiprows=1)
     data_array = np.array(df[1])
     data = data_array[:int(len(data_array)/2)]
     ob = data_array[int(len(data_array)/2):]
     normalized_array = data/ob
-    normalized_array = normalized_array[_slice:]
+    normalized_array = normalized_array[_ignore:]
     # OB at the end of 2773
     return normalized_array
 
