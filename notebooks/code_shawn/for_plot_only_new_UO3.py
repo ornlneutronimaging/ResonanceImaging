@@ -5,15 +5,15 @@ import pandas as pd
 
 '''Describe your sample: '''
 # Input sample name or names as str, case sensitive
-_input_formula = 'Cd'  # input('Please input the chemicals? ')
-_input_thick_mm = 0.025  # float(input('Please input the thickness or majority thickness of stacked foils in mm : '))
+_input_formula = 'UOGd'  # input('Please input the chemicals? ')
+_input_thick_mm = 0.26  # float(input('Please input the thickness or majority thickness of stacked foils in mm : '))
 _input_thick_cm = _input_thick_mm/10
 _database = 'ENDF_VIII'
 energy_max = 300  # max incident energy in eV
 energy_min = 0  # min incident energy in eV
 energy_sub = 100  # steps used to interpolate database
 sub_x = energy_sub * (energy_max - energy_min)  # steps used to interpolate database
-compound_boo = 'N'  # Compound or single/multi elements foil/stacked foils: Y/N?
+compound_boo = 'Y'  # Compound or single/multi elements foil/stacked foils: Y/N?
 
 '''Input for dict modification in certain cases: '''
 # Thickness input:
@@ -22,12 +22,12 @@ special_thick_element_str = str
 special_thick_mm_list = []
 special_thick_cm_list = np.array(special_thick_mm_list)/10
 # Enriched isotope ratio input:
-enrichment_boo = 'N'  # Isotopic enriched or depleted: Y/N?
+enrichment_boo = 'Y'  # Isotopic enriched or depleted: Y/N?
 enriched_element_str = 'U'
 input_ratio_dict = {'U': [0., 0., .15, .85]}
                     # 'O': [1., 0., 0.]}  #{'233-U': 0., '234-U': 0., '235-U': 0.15, '238-U': 0.85}}
 # Special density input:
-special_density_boo = 'N'
+special_density_boo = 'Y'
 special_density_element_str = str
 special_density_gcm3_list = []
 
@@ -35,9 +35,9 @@ special_density_gcm3_list = []
 _plot_or_not = 'Y'
 _energy_x_axis = 'Y'  # 1 means plot x-axis as energy in eV
 _trans_y_axis = 'N'  # 1 means plot y-axis as transmission
-_plot_each_ele_contribution = 'N'  # 1 means plot each element's contribution
-_plot_each_iso_contribution = 'Y'  # 1 means plot each isotope's contribution
-_plot_mixed = 'Y'  # 1 means plot mixed resonance
+_plot_each_ele_contribution = 'Y'  # 1 means plot each element's contribution
+_plot_each_iso_contribution = 'N'  # 1 means plot each isotope's contribution
+_plot_mixed = 'N'  # 1 means plot mixed resonance
 '''Export to clipboard for Excel or DataGraph?'''
 _export_to_clipboard_boo = 'N'
 
@@ -140,6 +140,7 @@ for el in elements:
     sigma_iso_ele_eleisodict[el] = sigma_iso_ele_isodict
     # One level dict of elemental array of (sigma * iso_ratio * ele_ratio)
     sigma_iso_ele_sum_eledict[el] = sigma_iso_ele_sum
+
 
 # Get Thickness * number of atoms per cm^3
 if compound_boo == 'N':
