@@ -59,12 +59,12 @@ def get_xy_from_database(isotopes, file_names, energy_min, energy_max, iso_ratio
     return x_energy, sigma_iso_ele_isodict, sigma_iso_ele_sum, df_raw
 
 
-def atoms_per_cm3(elements, thick_cm_dict, density_gcm3_dict, molar_mass_dict):
-    n = 0.
-    for ele in elements:
-        l_x_n = l_x_n + thick_cm_dict[ele] * density_gcm3_dict[ele] / molar_mass_dict[ele]
-    l_n_avo = l_x_n * pt.constants.avogadro_number
-    return atoms_per_cm3
+# def atoms_per_cm3(elements, thick_cm_dict, density_gcm3_dict, molar_mass_dict):
+#     n = 0.
+#     for ele in elements:
+#         l_x_n = l_x_n + thick_cm_dict[ele] * density_gcm3_dict[ele] / molar_mass_dict[ele]
+#     l_n_avo = l_x_n * pt.constants.avogadro_number
+#     return atoms_per_cm3
 
 
 def l_x_n_multi_ele_stack(elements, thick_cm_dict, density_gcm3_dict, molar_mass_dict):
@@ -76,10 +76,10 @@ def l_x_n_multi_ele_stack(elements, thick_cm_dict, density_gcm3_dict, molar_mass
     return l_n_avo
 
 
-def l_x_n_compound(elements, thick_cm, compound_density, molar_mass_dict, formula_dict, sum_ratios):
+def l_x_n_compound(elements, thick_cm, compound_density, molar_mass_dict, ele_at_ratio_dict):
     molar_mass_sum = 0.
     for ele in elements:
-        molar_mass_sum = molar_mass_sum + molar_mass_dict[ele] * formula_dict[ele] / sum_ratios
+        molar_mass_sum = molar_mass_sum + molar_mass_dict[ele] * ele_at_ratio_dict[ele]
     l_x_n = thick_cm * compound_density / molar_mass_sum
     l_n_avo = l_x_n * pt.constants.avogadro_number
     print('Thickness(l) x atoms_per_cm^3(N) : ', l_n_avo)

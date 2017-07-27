@@ -5,7 +5,7 @@ import pandas as pd
 
 '''Describe your sample: '''
 # Input sample name or names as str, case sensitive
-_input_formula = 'Cd'  # input('Please input the chemicals? ')
+_input_formula = 'AgCo'  # input('Please input the chemicals? ')
 _input_thick_mm = 0.025  # float(input('Please input the thickness or majority thickness of stacked foils in mm : '))
 _input_thick_cm = _input_thick_mm/10
 _database = 'ENDF_VIII'
@@ -35,9 +35,10 @@ special_density_gcm3_list = []
 _plot_or_not = 'Y'
 _energy_x_axis = 'Y'  # 1 means plot x-axis as energy in eV
 _trans_y_axis = 'N'  # 1 means plot y-axis as transmission
-_plot_each_ele_contribution = 'N'  # 1 means plot each element's contribution
-_plot_each_iso_contribution = 'Y'  # 1 means plot each isotope's contribution
+_plot_each_ele_contribution = 'Y'  # 1 means plot each element's contribution
+_plot_each_iso_contribution = 'N'  # 1 means plot each isotope's contribution
 _plot_mixed = 'Y'  # 1 means plot mixed resonance
+
 '''Export to clipboard for Excel or DataGraph?'''
 _export_to_clipboard_boo = 'N'
 
@@ -75,7 +76,7 @@ iso_ratio_dicts = _functions.get_iso_ratio_dicts_quick(elements, isotope_dict)
 density_gcm3_dict = _functions.get_density_dict(elements)
 
 
-# Update DICT 2: isotopic ratio changes lead to |Density| & |Molar mass| changes
+# Update DICT 1: isotopic ratio changes lead to |Density| & |Molar mass| changes
 if compound_boo == 'N':
     if special_thick_boo == 'Y':
         thick_cm_dict = _plot_functions.modify_thick_cm_dict_by_input(thick_cm_dict, special_thick_element_str, special_thick_cm_list)
@@ -99,10 +100,22 @@ else:
         # Not isolated elements or mixture or compound need density input currently
         input_tot_density = 0.7875
 
+# DICT 6: Stoichiometric ratio
+if compound_boo == 'Y':
+    # If input is compound, input formula follows the stoichimetric ratios
+    ele_at_ratio_dict = {}
+    for el in elements:
+        ele_at_ratio_dict[el] = formula_dict[el]/sum_ratios
+else:
+    # If input is NOT compound, so the input are stack of elements,
+    # stoichimetric ratios need to be calculated based on density and thickness
+    ele_at_ratio_dict = _functions.ele_ratio_dict(elements, thick_cm_dict, density_gcm3_dict, molar_mass_dict)
+
 print('Thickness (cm): ', thick_cm_dict)
 print('Density (g/cm^3): ', density_gcm3_dict)
-print('Isotopic ratio (at.%)', iso_ratio_dicts)
 print('Molar weight (g/mol): ', molar_mass_dict)
+print('Elemental ratio (at.%): ', ele_at_ratio_dict)
+print('Isotopic ratio (at.%): ', iso_ratio_dicts)
 
 
 '''For plotting the database'''
@@ -119,7 +132,6 @@ for el in elements:
     # iso_ratio_array = np.array(iso_ratio_list)
     # iso_mass_list = list(dict.values(iso_mass_dicts[el]))
     # iso_mass_array = np.array(iso_mass_list)
-    ele_at_ratio = formula_dict[el] / sum_ratios
 
     # Get sigma related terms
     file_names = _functions.get_file_path(_database, el)
@@ -130,7 +142,7 @@ for el in elements:
                                                energy_max,
                                                iso_ratio_list,
                                                sub_x,
-                                               ele_at_ratio)
+                                               ele_at_ratio_dict[el])
     # Two level dict of isotopic array of (L * sigma * iso_ratio * ele_ratio)
     # sigma_iso_ele_l_eleisodict[el] = sigma_iso_ele_l_isodict
     # One level dict of elemental array of (L * sigma * iso_ratio * ele_ratio)
@@ -142,13 +154,7 @@ for el in elements:
     sigma_iso_ele_sum_eledict[el] = sigma_iso_ele_sum
 
 # Get Thickness * number of atoms per cm^3
-if compound_boo == 'N':
-    # Stacked foils or single foil
-    mixed_l_n_avo = _plot_functions.l_x_n_multi_ele_stack(elements,
-                                                          thick_cm_dict,
-                                                          density_gcm3_dict,
-                                                          molar_mass_dict)
-else:
+if compound_boo == 'Y':
     # For compound
     thick_cm_list = list(dict.values(thick_cm_dict))
     thick_cm = thick_cm_list[0]
@@ -157,8 +163,13 @@ else:
                                                    thick_cm,
                                                    compound_density,
                                                    molar_mass_dict,
-                                                   formula_dict,
-                                                   sum_ratios)
+                                                   ele_at_ratio_dict)
+else:
+    # Stacked foils or single foil
+    mixed_l_n_avo = _plot_functions.l_x_n_multi_ele_stack(elements,
+                                                          thick_cm_dict,
+                                                          density_gcm3_dict,
+                                                          molar_mass_dict)
 
 # Get the tot transmission for all
 # yi_values_l = list(dict.values(sigma_iso_ele_sum_l_eledict))
