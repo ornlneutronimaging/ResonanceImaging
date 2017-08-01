@@ -5,6 +5,7 @@ import re
 import os
 import glob
 import pandas as pd
+from scipy import interpolate
 
 '''
 Energy, wavelength and time conversions
@@ -46,7 +47,7 @@ def sig2trans(_thick_cm, _atoms_per_cm3, _ele_atomic_ratio, _sigma_b, _iso_atomi
     return neutron_transmission
 
 
-def sig_2trans_quick(_thick_cm, _atoms_per_cm3, _sigma_portion_sum):
+def sig2trans_quick(_thick_cm, _atoms_per_cm3, _sigma_portion_sum):
     neutron_transmission = np.exp(-1 * _thick_cm * _atoms_per_cm3 * 1e-24 * _sigma_portion_sum)
     return neutron_transmission
 
@@ -96,13 +97,13 @@ def input2formula(_input):
 
 
 def dict_key_list(_formula_dict):
-    _elements = list(dict.keys(_formula_dict))
-    return _elements
+    _keys = list(dict.keys(_formula_dict))
+    return _keys
 
 
 def dict_value_list(_formula_dict):
-    _ratios = list(dict.values(_formula_dict))
-    return _ratios
+    _values = list(dict.values(_formula_dict))
+    return _values
 
 
 def boo_dict(_key_list, _y_or_n):
@@ -303,6 +304,20 @@ def get_normalized_data_range(_filename, range_min, range_max):
     return normalized_array
 
 
+def get_ob_range(_filename, range_min, range_max):
+    df = pd.read_csv(_filename, header=None, skiprows=1)
+    data_array = np.array(df[1])
+    data = data_array[:int(len(data_array)/2)]
+    ob = data_array[int(len(data_array)/2):]
+    ob = ob[range_min:range_max]
+    ob = ob[::-1]
+    # normalized_array = data/ob
+    # normalized_array = normalized_array[range_min:range_max]
+    # normalized_array = normalized_array[::-1]  # Flip array from descending to normal
+    # OB at the end of 2773
+    return ob
+
+
 def get_spectra_range(_filename, delay_us, source_to_detector_cm, range_min, range_max, time_lamda_ev_axis='eV'):
     """
     Get spectra file and convert time to wavelength or energy.
@@ -357,3 +372,52 @@ def get_spectra_slice(_filename, time_lamda_ev_axis, delay_us, source_to_detecto
         return ev_array
     if time_lamda_ev_axis == 'lamda':
         return time_array
+
+
+def get_sigma(isotopes, file_names, energy_min, energy_max, sub_x):
+    # Transmission calculation of summed and separated contributions by each isotopes
+    df_raw = pd.DataFrame()
+    df_inter = pd.DataFrame()
+    # sigma_iso_ele_isodict = {}
+    # sigma_iso_ele_l_isodict = {}
+    # thick_cm = thick_mm/10
+    # sigma_iso_ele_sum = 0.
+    # sigma_iso_ele_l_sum = 0.
+    # iso_at_ratio = iso_ratio_list
+    sigma_dict = {}
+    for i, iso in enumerate(isotopes):
+        # Read database .csv file
+        df = pd.read_csv(file_names[i], header=1)
+        # Drop rows beyond range
+        df = df.drop(df[df.E_eV < energy_min].index)  # drop rows beyond range
+        df = df.drop(df[df.E_eV > energy_max].index)  # drop rows beyond range
+        df = df.reset_index(drop=True)  # Reset index after dropping values
+        # print(df.head())
+        # print(df.tail())
+        '''
+        Attention!!!
+        The drop here not works perfect since all the data not at the same intervals.
+        df1 ends at 4999 and df2 might end at 5000. 
+        This will affect the accuracy of the summation performed later. 
+        '''
+        # Spline x-axis and y-axis for transmission calculation
+        x_energy = np.linspace(df['E_eV'].min(), df['E_eV'].max(), sub_x)
+        y_spline = interpolate.interp1d(x=df['E_eV'], y=df['Sig_b'], kind='linear')
+        y_i = y_spline(x_energy)
+        sigma_b = y_i
+        df_inter['E_eV'] = x_energy
+        """
+        Attention:
+        The following part is for producing df_raw of all isotopes for future reference
+        """
+        # Create a new DataFrame including all isotopic data
+        # within the selected energy range
+        first_col = iso + ', E_eV'
+        second_col = iso + ', Sig_b'
+        sigma_dict[iso] = sigma_b
+        df.rename(columns={'E_eV': first_col, 'Sig_b': second_col}, inplace=True)
+        df_raw = pd.concat([df_raw, df], axis=1)
+        df_inter[second_col] = sigma_b
+
+    return x_energy, sigma_dict
+

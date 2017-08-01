@@ -2,10 +2,12 @@ import _plot_functions
 import _functions
 import numpy as np
 import pandas as pd
+import pprint
+from periodictable.constants import avogadro_number
 
 '''Describe your sample: '''
 # Input sample name or names as str, case sensitive
-_input_formula = 'AgCo'  # input('Please input the chemicals? ')
+_input_formula = 'CoAg'  # input('Please input the chemicals? ')
 _input_thick_mm = 0.025  # float(input('Please input the thickness or majority thickness of stacked foils in mm : '))
 _input_thick_cm = _input_thick_mm/10
 _database = 'ENDF_VIII'
@@ -114,101 +116,102 @@ else:
 print('Thickness (cm): ', thick_cm_dict)
 print('Density (g/cm^3): ', density_gcm3_dict)
 print('Molar weight (g/mol): ', molar_mass_dict)
-print('Elemental ratio (at.%): ', ele_at_ratio_dict)
-print('Isotopic ratio (at.%): ', iso_ratio_dicts)
+print('Stoichiometric ratio (at.%): ', ele_at_ratio_dict)
+print('Isotopic ratio (at.%): ')
+pprint.pprint(iso_ratio_dicts)
 
 
 '''For plotting the database'''
-sigma_iso_ele_eleisodict = {}  # For transmission calculation at isotope level
-sigma_iso_ele_sum_eledict = {}  # For transmission calculation at element level
-# sigma_iso_ele_sum_l_eledict = {}
-# sigma_iso_ele_l_eleisodict = {}
+'''Get (sigma * isotopic ratio) terms'''
+sigma_iso_eleisodict = {}  # For transmission calculation at isotope level
+sigma_iso_sum_eledict = {}  # For transmission calculation at element level
 df_raw_dict = {}  # Raw sigma data for elements and isotopes
-# atoms_per_cm3_dict = {}
-
+ele_at_ratio = 1
 for el in elements:
-    # isotopes_list = list(dict.keys(iso_ratio_dicts[el]))
     iso_ratio_list = list(dict.values(iso_ratio_dicts[el]))
-    # iso_ratio_array = np.array(iso_ratio_list)
-    # iso_mass_list = list(dict.values(iso_mass_dicts[el]))
-    # iso_mass_array = np.array(iso_mass_list)
-
     # Get sigma related terms
     file_names = _functions.get_file_path(_database, el)
-    x_energy, sigma_iso_ele_isodict, sigma_iso_ele_sum, df_raw_dict[el] \
-        = _plot_functions.get_xy_from_database(iso_ratio_dicts[el],
-                                               file_names,
-                                               energy_min,
-                                               energy_max,
-                                               iso_ratio_list,
-                                               sub_x,
-                                               ele_at_ratio_dict[el])
-    # Two level dict of isotopic array of (L * sigma * iso_ratio * ele_ratio)
-    # sigma_iso_ele_l_eleisodict[el] = sigma_iso_ele_l_isodict
-    # One level dict of elemental array of (L * sigma * iso_ratio * ele_ratio)
-    # sigma_iso_ele_sum_l_eledict[el] = sigma_iso_ele_sum * thick_cm_dict[el]
+    x_energy, sigma_iso_dict, sigma_iso_sum, df_raw_dict[el] \
+        = _plot_functions.get_sigma_iso_terms_from_database(iso_ratio_dicts[el],
+                                                            file_names,
+                                                            energy_min,
+                                                            energy_max,
+                                                            iso_ratio_list,
+                                                            sub_x)
+    # Two level dict of isotopic array of (sigma * iso_ratio)
+    sigma_iso_eleisodict[el] = sigma_iso_dict
+    # One level dict of elemental array of (sigma * iso_ratio)
+    sigma_iso_sum_eledict[el] = sigma_iso_sum
+    print(isotope_dict[el])
 
-    # Two level dict of isotopic array of (sigma * iso_ratio * ele_ratio)
-    sigma_iso_ele_eleisodict[el] = sigma_iso_ele_isodict
-    # One level dict of elemental array of (sigma * iso_ratio * ele_ratio)
-    sigma_iso_ele_sum_eledict[el] = sigma_iso_ele_sum
-
-# Get Thickness * number of atoms per cm^3
+'''Get atoms_per_cm^3 for each elements'''
 if compound_boo == 'Y':
     # For compound
-    thick_cm_list = list(dict.values(thick_cm_dict))
-    thick_cm = thick_cm_list[0]
+    # thick_cm_list = list(dict.values(thick_cm_dict))
+    # thick_cm = thick_cm_list[0]
     compound_density = input_tot_density
-    mixed_l_n_avo = _plot_functions.l_x_n_compound(elements,
-                                                   thick_cm,
-                                                   compound_density,
-                                                   molar_mass_dict,
-                                                   ele_at_ratio_dict)
+    molar_mass_list = list(dict.values(molar_mass_dict))
+    molar_mass_array = np.array(molar_mass_list)
+    molar_mass_times_ratio_array = molar_mass_array * ratios
+    molar_mass_times_ratio_sum = sum(molar_mass_times_ratio_array)
+    atoms_per_cm3_dict = {}
+    density_within_compound = {}
+    for ele in elements:
+        density_within_compound[ele] = compound_density * (formula_dict[ele] * molar_mass_dict[ele] / molar_mass_times_ratio_sum)
+        atoms_per_cm3_dict[ele] = avogadro_number * density_within_compound[ele] / molar_mass_dict[ele]
+    print('Number of atoms per cm^3 : ', atoms_per_cm3_dict)
 else:
     # Stacked foils or single foil
-    mixed_l_n_avo = _plot_functions.l_x_n_multi_ele_stack(elements,
-                                                          thick_cm_dict,
-                                                          density_gcm3_dict,
-                                                          molar_mass_dict)
+    atoms_per_cm3_dict = {}
+    for ele in elements:
+        # atoms_per_cm3_dict
+        atoms_per_cm3_dict[ele] = avogadro_number * density_gcm3_dict[ele]/molar_mass_dict[ele]
+    print('Number of atoms per cm^3 : ', atoms_per_cm3_dict)
 
-# Get the tot transmission for all
-# yi_values_l = list(dict.values(sigma_iso_ele_sum_l_eledict))
-# yi_values_l_sum = sum(yi_values_l)
-# # sum of (sigma * ele_ratio * iso_ratio * l)
-yi_values = list(dict.values(sigma_iso_ele_sum_eledict))
-yi_values_sum = sum(yi_values)
-# sum of (sigma * ele_ratio * iso_ratio)
-# print(yi_values)
-trans_sum = _functions.sig_l_2trans_quick(mixed_l_n_avo, yi_values_sum)
-y_trans_tot = trans_sum
-
-
-# Create the trans or absorb dict of ele for plotting if needed
+""" Get y-axis dictionaries:"""
 y_ele_dict = {}
-if _plot_each_ele_contribution == 'Y':
-    for _ele in elements:
-        if _trans_y_axis == 'Y':
-            y_ele_dict[_ele] = _functions.sig_l_2trans_quick(mixed_l_n_avo, sigma_iso_ele_sum_eledict[_ele])
-        else:
-            y_ele_dict[_ele] = 1 - _functions.sig_l_2trans_quick(mixed_l_n_avo, sigma_iso_ele_sum_eledict[_ele])
-
-# Create the trans or absorb dict : y_iso_dicts of isotopes for plotting if needed
-y_iso_dicts = {}
-if _plot_each_iso_contribution == 'Y':
-    for _ele in elements:
+y_all_dict = {}
+y_sum = 1.
+if _trans_y_axis == 'Y':
+    # Get transmission y dictionaries
+    trans_iso_dict = {}
+    trans_ele_dict = {}
+    for ele in elements:
         y_iso_dict = {}
-        for _iso in isotope_dict[_ele]:
-            if _trans_y_axis == 'Y':
-                y_iso_dict[_iso] = _functions.sig_l_2trans_quick(mixed_l_n_avo,
-                                                                 sigma_iso_ele_eleisodict[_ele][_iso])
-            else:
-                y_iso_dict[_iso] = 1 - _functions.sig_l_2trans_quick(mixed_l_n_avo,
-                                                                     sigma_iso_ele_eleisodict[_ele][_iso])
-        y_iso_dicts[_ele] = y_iso_dict
+        for iso in isotope_dict[ele]:
+            sigma_iso_isodict = sigma_iso_eleisodict[ele]
+            trans_iso_dict[iso] = _functions.sig2trans_quick(thick_cm_dict[ele], atoms_per_cm3_dict[ele], sigma_iso_isodict[iso])
+            y_iso_dict[iso] = trans_iso_dict[iso]
+        trans_ele_dict[ele] = _functions.sig2trans_quick(thick_cm_dict[ele], atoms_per_cm3_dict[ele], sigma_iso_sum_eledict[ele])
+        y_ele_dict[ele] = trans_ele_dict[ele]
+        y_all_dict[ele] = y_iso_dict
+        y_sum = y_sum * y_ele_dict[ele]
+else:
+    # Get attenuation y dictionaries
+    trans_iso_dict = {}
+    trans_ele_dict = {}
+    for ele in elements:
+        y_iso_dict = {}
+        for iso in isotope_dict[ele]:
+            sigma_iso_isodict = sigma_iso_eleisodict[ele]
+            trans_iso_dict[iso] = _functions.sig2trans_quick(thick_cm_dict[ele], atoms_per_cm3_dict[ele], sigma_iso_isodict[iso])
+            # Convert transmission to attenuation
+            y_iso_dict[iso] = 1 - trans_iso_dict[iso]
+        trans_ele_dict[ele] = _functions.sig2trans_quick(thick_cm_dict[ele], atoms_per_cm3_dict[ele], sigma_iso_sum_eledict[ele])
+        # Convert transmission to attenuation
+        y_ele_dict[ele] = 1 - trans_ele_dict[ele]
+        y_all_dict[ele] = y_iso_dict
+        y_sum = y_sum * trans_ele_dict[ele]
+    # Convert transmission to attenuation
+    y_sum = 1 - y_sum
 
-# Plot the theoretical neutron resonance
+print(y_sum)
+print(y_ele_dict)
+print(y_all_dict)
+
+"""Plot the theoretical neutron resonance"""
 if _plot_or_not == 'Y':
-    _plot_functions.plot_database(_energy_x_axis,
+    _plot_functions.plot_resonance(_energy_x_axis,
                                   _trans_y_axis,
                                   _plot_mixed,
                                   _plot_each_ele_contribution,
@@ -216,9 +219,9 @@ if _plot_or_not == 'Y':
                                   elements,
                                   isotope_dict,
                                   x_energy,
-                                  y_trans_tot,
+                                  y_sum,
                                   y_ele_dict,
-                                  y_iso_dicts,
+                                  y_all_dict,
                                   _input_formula)
 
 # Export to clipboard for density and thickness manipulations with Excel or DataGraph
@@ -228,13 +231,12 @@ if _export_to_clipboard_boo == 'Y':
     df_yi_tot.rename(columns={0: 'eV' + _name}, inplace=True)
     df_yi_tot['lamda-' + _name] = _functions.ev2lamda(x_energy)
     df_yi_tot['sample_density-' + _name] = compound_density
-    df_yi_tot['avo_divided-' + _name] = mixed_l_n_avo
-    df_yi_tot['sigma-' + _name] = yi_values_sum
+    df_yi_tot['sigma-' + _name] = y_sum
 
     for ele in elements:
         _ele_str = str(ele)
-        df_yi_tot['sigma-' + _ele_str] = sigma_iso_ele_sum_eledict[ele]
-        df_test = pd.DataFrame(sigma_iso_ele_eleisodict[ele])
+        df_yi_tot['sigma-' + _ele_str] = sigma_iso_sum_eledict[ele]
+        df_test = pd.DataFrame(sigma_iso_eleisodict[ele])
         df_yi_tot = pd.concat([df_yi_tot, df_test], axis=1)
     print(df_yi_tot.head())
     # Export to clipboard
