@@ -113,7 +113,7 @@ def plot_resonance(_energy_x_axis, _trans_y_axis, _plot_mixed, _plot_each_ele_co
 
     :param isotope_dict:
     isotope names to be used as label in plot
-    index : element in string
+    key : element in string
     value : list of isotopes for specific element
     dictionary, string
 
@@ -129,7 +129,7 @@ def plot_resonance(_energy_x_axis, _trans_y_axis, _plot_mixed, _plot_each_ele_co
     dictionary, float
 
     :param y_all_dict:
-    sub dictionary of resonance for each isotope, index : element name in string
+    sub dictionary of resonance for each isotope, key : element name in string
     dictionary, float
 
     :param _input_formula: input string used as label in plot
@@ -179,6 +179,22 @@ def plot_resonance(_energy_x_axis, _trans_y_axis, _plot_mixed, _plot_each_ele_co
 ### Functions to modify the dicts in special case
 
 def modify_thick_cm_dict_by_input(thick_cm_dict, special_thick_element_str, special_thick_cm_list):
+    """
+    modify thickness dictionary with input
+
+    :param thick_cm_dict:
+    original thickness dictionary
+
+    :param special_thick_element_str:
+    elements need modification (element separated by space ' ')
+    eg: 'Co Ag'
+    str
+
+    :param special_thick_cm_list:
+    targeted thicknesses list (units: cm) for the input elements
+
+    :return: modified thickness dictionary
+    """
     # For elements with various thickness:
     special_element = special_thick_element_str.split(' ')
     thick_cm_dict = _functions.dict_replace_value_by_key(thick_cm_dict, special_element, special_thick_cm_list)
@@ -187,6 +203,22 @@ def modify_thick_cm_dict_by_input(thick_cm_dict, special_thick_element_str, spec
 
 
 def modify_density_dict_by_input(density_gcm3_dict, special_element_str, special_density_gcm3_list):
+    """
+    modify density dictionary with input
+
+    :param density_gcm3_dict:
+    original density dictionary
+
+    :param special_element_str:
+    elements need modification (element separated by space ' ')
+    eg: 'Co Ag'
+    str
+
+    :param special_density_gcm3_list:
+    targeted density list (units: g/cm^3) for the input elements
+
+    :return: modified density dictionary
+    """
     # For elements with special density:
     special_element = special_element_str.split(' ')
     density_gcm3_dict = _functions.dict_replace_value_by_key(density_gcm3_dict, special_element, special_density_gcm3_list)
@@ -195,6 +227,26 @@ def modify_density_dict_by_input(density_gcm3_dict, special_element_str, special
 
 
 def modify_iso_ratio_dicts(elements, isotope_dict, enriched_element_str, input_ratio_dict):
+    """
+    modify isotopic ratio dictionary with input
+
+    :param elements:
+    list of element names (str)
+
+    :param isotope_dict:
+    dictionary of isotope list with element name as key
+
+    :param enriched_element_str:
+    elements need modification (element separated by space ' ')
+    eg: 'Co Ag'
+    str
+
+    :param input_ratio_dict:
+    targeted isotopic ratio in the same structured dictionary for the input elements
+
+    :return: modified dictionary
+    """
+
     iso_ratio_dicts = _functions.get_iso_ratio_dicts_quick(elements, isotope_dict)
     enriched_element = enriched_element_str.split(' ')
     for ele in enriched_element:
@@ -203,17 +255,53 @@ def modify_iso_ratio_dicts(elements, isotope_dict, enriched_element_str, input_r
     return iso_ratio_dicts, enriched_element
 
 
-def modify_molar_mass_dict_by_enrichment(molar_mass_dict, enriched_element, isotope_dict, enriched_iso_ratio_dicts, iso_mass_dicts):
+def modify_molar_mass_dict_by_enrichment(molar_mass_dict, enriched_element, isotope_dict, enriched_iso_ratio_dicts):
+    """
+    update the molar mass dictionary due to isotopic ratio change
+
+    :param molar_mass_dict:
+    original dictionary
+
+    :param enriched_element:
+    elements modified by enrichment
+    list of names (str)
+
+    :param isotope_dict:
+    dictionary of isotope list with element name as key
+
+    :param enriched_iso_ratio_dicts:
+    updated isotopic ratio dictionary from function: 'modify_iso_ratio_dicts'
+
+    :return: modified dictionary
+    """
     for ele in enriched_element:
         molar_mass = 0.
         for iso in isotope_dict[ele]:
-            molar_mass = molar_mass + enriched_iso_ratio_dicts[ele][iso] * iso_mass_dicts[ele][iso]
+            molar_mass = molar_mass + enriched_iso_ratio_dicts[ele][iso] * pt.elements.isotope(iso).mass
         molar_mass_dict[ele] = molar_mass
     print('Modified molar mass by enrichment (g/mol): ', molar_mass_dict)
     return molar_mass_dict
 
 
 def modify_density_dict_by_enrichment(density_gcm3_dict, enriched_element, isotope_dict, enriched_iso_ratio_dicts):
+    """
+    update the density dictionary due to isotopic ratio change
+
+    :param density_gcm3_dict:
+    original dictionary
+
+    :param enriched_element:
+    elements modified by enrichment
+    list of names (str)
+
+    :param isotope_dict:
+    dictionary of isotope list with element name as key
+
+    :param enriched_iso_ratio_dicts:
+    updated isotopic ratio dictionary from function: 'modify_iso_ratio_dicts'
+
+    :return:
+    """
     for ele in enriched_element:
         density_gcm3 = 0.
         for iso in isotope_dict[ele]:
