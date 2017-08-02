@@ -70,9 +70,7 @@ def get_isotope_dicts(_database, _element):
     # main_dir = os.path.dirname(os.path.abspath(__file__))
     isotope_dict = {}
     for _each in _element:
-        path = 'data_web/' + _database + '/' + str(_each) + '*.csv'
-        # path = main_dir + '/data_web/' + _database + '/' + _each + '*.csv'
-        file_names = glob.glob(path)
+        file_names = get_file_path(_database, _each)
         isotope_dict_mirror = {}
         for _i, file in enumerate(file_names):
             # Obtain element, z number from the basename
@@ -115,23 +113,23 @@ def input2formula(_input):
     return _formula
 
 
-def dict_key_list(_formula_dict):
+def dict_key_list(_dict):
     """
     convert dictionary keys to list
-    :param _formula_dict: input dictionary
+    :param _dict: input dictionary
     :return: keys as list
     """
-    _keys = list(dict.keys(_formula_dict))
+    _keys = list(dict.keys(_dict))
     return _keys
 
 
-def dict_value_list(_formula_dict):
+def dict_value_list(_dict):
     """
     convert dictionary values to list
-    :param _formula_dict: input dictionary
+    :param _dict: input dictionary
     :return: values as list
     """
-    _values = list(dict.values(_formula_dict))
+    _values = list(dict.values(_dict))
     return _values
 
 
@@ -222,7 +220,7 @@ def create_2d_dict(top_level_name, top_base_dict, value_dict):
 
 
 def get_file_path(_database, _element):
-    path = 'data_web/' + _database + '/' + _element + '*.csv'
+    path = 'data_web/' + _database + '/' + _element + '-*.csv'
     file_names = glob.glob(path)
     return file_names
 
